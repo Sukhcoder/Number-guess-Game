@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Guess the Number</title>
+  <style>
+    body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at center, #1e1e2f, #0f0f17);
+      color: #f0f0f0;
+      text-align: center;
+      padding-top: 50px;
+    }
+    h1 {
+      color: #ffdd57;
+      text-shadow: 0 0 15px #ffdd57, 0 0 30px #ffdd57;
+      font-size: 2.5em;
+    }
+    p {
+      font-size: 1.2em;
+      color: #ccc;
+    }
+    input {
+      padding: 10px;
+      font-size: 18px;
+      width: 120px;
+      border: 2px solid #ffdd57;
+      border-radius: 8px;
+      background-color: #1a1a26;
+      color: #fff;
+      text-align: center;
+      outline: none;
+      box-shadow: 0 0 8px #ffdd57;
+    }
+    input:focus {
+      box-shadow: 0 0 15px #ffdd57, 0 0 25px #ffdd57;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 18px;
+      background-color: #ffdd57;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: #0f0f17;
+      font-weight: bold;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 10px #ffdd57;
+    }
+    button:hover {
+      background-color: #ffe784;
+      box-shadow: 0 0 20px #ffdd57, 0 0 40px #ffdd57;
+    }
+    #output {
+      margin-top: 25px;
+      font-size: 1.4em;
+      min-height: 1.4em;
+      transition: all 0.3s ease;
+    }
+    .win {
+      color: #4cff4c;
+      text-shadow: 0 0 10px #4cff4c, 0 0 20px #4cff4c;
+      animation: pulse 1s infinite alternate;
+    }
+    .lose {
+      color: #ff4c4c;
+      text-shadow: 0 0 10px #ff4c4c, 0 0 20px #ff4c4c;
+      animation: shake 0.4s ease-in-out 0s 2;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.1); }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 Guess the Number</h1>
+  <p>Enter a number between 1 and 100. You have 10 tries!</p>
+  <input type="number" id="guess" min="1" max="100" autofocus>
+  <button id="guessBtn">Guess</button>
+  <div id="output"></div>
+
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+  <script>
+    async function main() {
+      window.pyodide = await loadPyodide();
+      await pyodide.runPythonAsync(`
+import random
+number = random.randint(1, 100)
+attempts = 0
+output = ""
+def check_guess(guess):
+    global attempts, output
+    attempts += 1
+    if guess == number:
+        output = "🎉 Congratulations! You guessed it in {} attempts.".format(attempts)
+    elif attempts >= 10:
+        output = "❌ Game over! The number was {}".format(number)
+    elif guess < number:
+        output = "📉 Too low! Attempts left: {}".format(10 - attempts)
+    else:
+        output = "📈 Too high! Attempts left: {}".format(10 - attempts)
+    return output
+`);
+    }
+    main();
+
+    async function makeGuess() {
+      let guessInput = document.getElementById("guess");
+      let guess = parseInt(guessInput.value);
+      if (isNaN(guess)) return;
+      let result = await pyodide.runPythonAsync(`check_guess(${guess})`);
+      let outputDiv = document.getElementById("output");
+
+      // Reset classes for animations
+      outputDiv.className = "";
+
+      if (result.includes("Congratulations")) {
+        outputDiv.classList.add("win");
+      } else if (result.includes("Game over")) {
+        outputDiv.classList.add("lose");
+      }
+
+      outputDiv.innerText = result;
+      guessInput.value = ""; // clear input
+      guessInput.focus(); // refocus
+    }
+
+    // Click button
+    document.getElementById("guessBtn").addEventListener("click", makeGuess);
+
+    // Press Enter triggers button
+    document.getElementById("guess").addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        makeGuess();
+      }
+    });
+  </script>
+</body>
+</html>
